@@ -1,13 +1,36 @@
 const express = require('express')
+const cors = require('cors')
 const app = express()
-const port = 6000
+const port = 6001
 const bcrypt = require('bcrypt')
 const crypto = require('crypto')
+const cookieParser = require('cookie-parser');
+
+const csrf = require('csurf')
 const tokenKey = "some complex pass"
 
 const userList = require('./dataBase')
 
 app.use(express.json())
+app.use(cors({origin: '*'}))
+app.use(cookieParser());
+
+
+
+app.use((req, res, next) => {
+  const cookieName = 'Authorization'
+  const cookie = req.cookies[cookieName];
+  if (cookie === undefined) {
+    // no: set a new cookie
+
+    console.log('cookie created successfully');
+  } else {
+    // yes, cookie was already present
+    console.log('cookie exists', cookie);
+  }
+  next(); // <-- important!
+});
+
 
 app.use(async (req, res, next) => {
 
@@ -52,10 +75,17 @@ app.post('/sign-in', async (req, res) => {
   const newToken = `${head}.${body}.${signature}`
 
   // var token = jwt.sign({id: dataExistUser.id, login: dataExistUser.login}, tokenKey);
+  res.cookie('token', newToken, { maxAge: 90000000, httpOnly: false });
   res.status(200).send({token: newToken, login: dataExistUser.login, id: dataExistUser.id})
 })
 
+app.use(csrf({ cookie: true }))
+
 app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
+app.post('/', (req, res) => {
   res.send('Hello World!')
 })
 
